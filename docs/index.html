@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice2Text — ถอดเสียงเป็นข้อความบน Mac ฟรี เร็ว เป็นส่วนตัว 100%</title>
+<meta name="description" content="แอป Mac ถอดเสียงจากไฟล์เสียง วิดีโอ หรือลิงก์ YouTube เป็นข้อความ พร้อมแปล 38 ภาษา ทำงานในเครื่องทั้งหมด ไม่ส่งข้อมูลขึ้นคลาวด์">
+<meta property="og:title" content="Voice2Text — ถอดเสียงเป็นข้อความบน Mac ฟรี เร็ว เป็นส่วนตัว 100%">
+<meta property="og:description" content="ลากไฟล์เสียง วิดีโอ หรือวางลิงก์ YouTube แล้วรับข้อความพร้อมเวลากำกับ แปลได้ 38 ภาษา ทำงานในเครื่องทั้งหมด">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://voice2textz.netlify.app/">
+<meta property="og:image" content="https://voice2textz.netlify.app/icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root {
+    --brand-1: #2E5BFA;
+    --brand-2: #8C33F0;
+    --ink: #1d1d1f;
+    --ink-soft: #55555e;
+    --bg-soft: #f5f6fa;
+    --line: #e6e7ee;
+    --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Sukhumvit Set", "Thonburi", "Segoe UI", sans-serif;
+    color: var(--ink);
+    line-height: 1.65;
+    background: #fff;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 72px 0; }
+  h2 { font-size: 1.9rem; text-align: center; margin-bottom: 10px; letter-spacing: -0.01em; }
+  .section-sub { text-align: center; color: var(--ink-soft); margin-bottom: 44px; }
+  .grad-text {
+    background: linear-gradient(100deg, var(--brand-1), var(--brand-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    text-align: center;
+    padding: 84px 0 64px;
+    background:
+      radial-gradient(60% 55% at 50% 0%, rgba(46, 91, 250, 0.10), transparent 70%),
+      radial-gradient(45% 40% at 78% 12%, rgba(140, 51, 240, 0.08), transparent 70%);
+  }
+  .hero img.appicon {
+    width: 108px; height: 108px;
+    filter: drop-shadow(0 10px 24px rgba(46, 91, 250, 0.35));
+    margin-bottom: 18px;
+  }
+  .hero h1 { font-size: 3rem; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .hero .tagline { font-size: 1.35rem; color: var(--ink); font-weight: 600; margin-bottom: 10px; }
+  .hero .lead {
+    max-width: 640px; margin: 0 auto 30px; color: var(--ink-soft); font-size: 1.05rem;
+  }
+  .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 26px; border-radius: 14px; text-decoration: none;
+    font-weight: 700; font-size: 1.05rem; transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary {
+    background: linear-gradient(100deg, var(--brand-1), var(--brand-2));
+    color: #fff; box-shadow: 0 8px 22px rgba(70, 70, 245, 0.35);
+  }
+  .btn-ghost { background: #fff; color: var(--ink); border: 1.5px solid var(--line); }
+  .dl-note { color: var(--ink-soft); font-size: .9rem; margin-bottom: 22px; }
+  .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 14px; font-size: .85rem; color: var(--ink-soft); font-weight: 600;
+  }
+
+  /* ---------- App mockup ---------- */
+  .mock {
+    max-width: 660px; margin: 44px auto 0; text-align: left;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 24px 60px rgba(29, 29, 60, 0.12); overflow: hidden;
+  }
+  .mock-bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; border-bottom: 1px solid var(--line); background: #fafafd; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .mock-title { margin-left: 8px; font-size: .85rem; color: var(--ink-soft); font-weight: 600; }
+  .mock-status { margin-left: auto; font-size: .75rem; color: #1e9e46; background: #e8f8ee; padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+  .mock-body { padding: 18px 20px 22px; }
+  .mock-file { display: flex; align-items: center; gap: 10px; font-size: .9rem; font-weight: 600; margin-bottom: 14px; }
+  .mock-file .ok { color: #1e9e46; font-weight: 700; font-size: .8rem; }
+  .mline { display: flex; gap: 12px; margin-bottom: 11px; font-size: .92rem; }
+  .mtime { color: #9a9aa5; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .78rem; padding-top: 3px; white-space: nowrap; }
+  .mtx b { font-weight: 600; }
+  .mtx .tr { color: var(--ink-soft); font-size: .86rem; }
+
+  /* ---------- Steps ---------- */
+  .steps { background: var(--bg-soft); }
+  .step-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 26px 22px; text-align: center;
+  }
+  .step-num {
+    width: 40px; height: 40px; margin: 0 auto 14px; border-radius: 50%;
+    background: linear-gradient(120deg, var(--brand-1), var(--brand-2));
+    color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  }
+  .step h3 { font-size: 1.06rem; margin-bottom: 6px; }
+  .step p { color: var(--ink-soft); font-size: .93rem; }
+
+  /* ---------- Features ---------- */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feat {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 22px;
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .feat:hover { box-shadow: 0 12px 30px rgba(29, 29, 60, 0.08); transform: translateY(-3px); }
+  .feat .emoji { font-size: 1.7rem; display: block; margin-bottom: 10px; }
+  .feat h3 { font-size: 1.05rem; margin-bottom: 6px; }
+  .feat p { color: var(--ink-soft); font-size: .92rem; }
+
+  /* ---------- Benefits ---------- */
+  .benefits { background: var(--bg-soft); }
+  .bene-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; max-width: 860px; margin: 0 auto; }
+  .bene {
+    display: flex; gap: 14px; background: #fff; border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px 22px; align-items: flex-start;
+  }
+  .bene .emoji { font-size: 1.5rem; line-height: 1.2; }
+  .bene h3 { font-size: 1rem; margin-bottom: 4px; }
+  .bene p { color: var(--ink-soft); font-size: .92rem; }
+
+  /* ---------- Install ---------- */
+  .install-box { max-width: 720px; margin: 0 auto; }
+  .ins {
+    display: flex; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line);
+    align-items: flex-start;
+  }
+  .ins:last-child { border-bottom: none; }
+  .ins-num {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--brand-1); color: var(--brand-1);
+    font-weight: 800; font-size: .95rem; display: flex; align-items: center; justify-content: center;
+  }
+  .ins h3 { font-size: 1.02rem; margin-bottom: 3px; }
+  .ins p { color: var(--ink-soft); font-size: .93rem; }
+  .ins kbd {
+    background: var(--bg-soft); border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 6px; padding: 1px 7px; font-size: .85rem; font-family: inherit;
+  }
+  .tip {
+    margin-top: 26px; background: #fff7e8; border: 1px solid #f2dfb6; border-radius: 12px;
+    padding: 14px 18px; font-size: .92rem; color: #7a5b16;
+  }
+  .gk-link { margin-top: 6px; font-size: .88rem; }
+  .gk-link a { color: #d92d20; text-decoration: none; font-weight: 700; }
+  .gatekeeper {
+    margin-top: 30px; background: #fef1f0; border: 2px solid #f2b8b5;
+    border-radius: var(--radius); padding: 24px 26px;
+    box-shadow: 0 4px 18px rgba(217, 45, 32, 0.08);
+  }
+  .gatekeeper h3 { font-size: 1.08rem; margin-bottom: 8px; color: #b42318; }
+  .gatekeeper .gk-why { color: #912018; font-size: .93rem; margin-bottom: 14px; }
+  .gatekeeper ol { margin-left: 22px; display: flex; flex-direction: column; gap: 10px; font-size: .96rem; }
+  .gatekeeper .gk-no { color: #d92d20; font-weight: 800; }
+  .gatekeeper code {
+    background: #fff; border: 1px solid #f2b8b5; padding: 2px 8px;
+    border-radius: 6px; font-size: .85rem; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .gatekeeper .gk-alt { margin-top: 14px; font-size: .9rem; color: #912018; }
+
+  /* ---------- FAQ ---------- */
+  .faq { background: var(--bg-soft); }
+  .faq-list { max-width: 760px; margin: 0 auto; }
+  details {
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 20px; margin-bottom: 12px;
+  }
+  summary { cursor: pointer; font-weight: 700; font-size: .98rem; }
+  details p { margin-top: 10px; color: var(--ink-soft); font-size: .93rem; }
+
+  /* ---------- Bottom CTA & footer ---------- */
+  .bottom-cta { text-align: center; }
+  footer {
+    border-top: 1px solid var(--line); padding: 28px 0 36px; text-align: center;
+    color: var(--ink-soft); font-size: .88rem;
+  }
+  footer a { color: var(--brand-1); text-decoration: none; }
+
+  @media (max-width: 760px) {
+    .hero h1 { font-size: 2.2rem; }
+    .step-grid, .feat-grid, .bene-grid { grid-template-columns: 1fr; }
+    section { padding: 54px 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="wrap">
+    <img class="appicon" src="icon.png" alt="ไอคอนแอป Voice2Text">
+    <h1>Voice2<span class="grad-text">Text</span></h1>
+    <p class="tagline">ถอดเสียงเป็นข้อความบน Mac ของคุณ — ฟรี เร็ว และเป็นส่วนตัว 100%</p>
+    <p class="lead">
+      ลากไฟล์เสียง วิดีโอ หรือวางลิงก์ YouTube แล้วรับข้อความพร้อมเวลากำกับในไม่กี่นาที
+      แปลต่อได้อีก 38 ภาษา ทุกอย่างประมวลผลในเครื่องคุณเอง ไม่ส่งข้อมูลขึ้นคลาวด์แม้แต่ไบต์เดียว
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="Voice2Text-1.3.4.dmg" download>⬇️&nbsp; ดาวน์โหลดฟรี สำหรับ macOS (.dmg)</a>
+      <a class="btn btn-ghost" href="#install">วิธีติดตั้ง</a>
+    </div>
+    <p class="dl-note">ไฟล์เล็กแค่ 2.8MB • โมเดล AI (~630MB) ดาวน์โหลดอัตโนมัติครั้งแรกที่เปิด</p>
+    <p class="gk-link"><a href="#gatekeeper">⚠️ เปิดครั้งแรก macOS จะขึ้นคำเตือนความปลอดภัย — ดูวิธีผ่านใน 3 ขั้นตอน (ทำครั้งเดียว)</a></p>
+    <div class="badges">
+      <span class="badge">v1.3.4</span>
+      <span class="badge">macOS 15 ขึ้นไป</span>
+      <span class="badge">Apple Silicon (M1+)</span>
+      <span class="badge">ฟรี ไม่มีค่ารายเดือน</span>
+      <span class="badge">ทำงานออฟไลน์</span>
+    </div>
+
+    <!-- ตัวอย่างหน้าจอแอป -->
+    <div class="mock" aria-hidden="true">
+      <div class="mock-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="mock-title">🎙️ Voice2Text</span>
+        <span class="mock-status">✓ โมเดลพร้อมใช้งาน</span>
+      </div>
+      <div class="mock-body">
+        <div class="mock-file">📄 ประชุมทีม-Q3.mp4 <span class="ok">เสร็จแล้ว • ภาษาไทย • ยาว 01:02:14</span></div>
+        <div class="mline"><span class="mtime">00:00:03</span><span class="mtx"><b>สวัสดีครับ วันนี้เรามาสรุปแผนการตลาดของไตรมาสสาม</b><br><span class="tr">Hello, today we're summarizing the Q3 marketing plan.</span></span></div>
+        <div class="mline"><span class="mtime">00:00:11</span><span class="mtx"><b>ยอดจากแคมเปญเดือนที่แล้วเติบโตขึ้นยี่สิบเปอร์เซ็นต์</b><br><span class="tr">Sales from last month's campaign grew twenty percent.</span></span></div>
+        <div class="mline"><span class="mtime">00:00:19</span><span class="mtx"><b>ทีมดีไซน์ช่วยเตรียม asset สำหรับเปิดตัวเดือนหน้าด้วยนะครับ</b><br><span class="tr">Design team, please prepare assets for next month's launch.</span></span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="steps">
+  <div class="wrap">
+    <h2>ใช้งานง่ายใน <span class="grad-text">3 ขั้นตอน</span></h2>
+    <p class="section-sub">ไม่ต้องสมัครสมาชิก ไม่ต้องตั้งค่าอะไรซับซ้อน</p>
+    <div class="step-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>ลากไฟล์ หรือวางลิงก์</h3>
+        <p>ไฟล์เสียง/วิดีโอจากเครื่อง หรือลิงก์ YouTube ก็ได้ ใส่ทีละหลายไฟล์ได้เลย</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>รอแป๊บเดียว</h3>
+        <p>ถอดเร็วกว่าความยาวเสียง 5–10 เท่า เสียงประชุม 1 ชั่วโมงเสร็จในราว 10 นาที</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>คัดลอก บันทึก หรือแปล</h3>
+        <p>ได้ข้อความพร้อมเวลา บันทึกเป็น .txt / .srt หรือกดแปลเป็นภาษาที่ต้องการ</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features">
+  <div class="wrap">
+    <h2>ฟีเจอร์<span class="grad-text">ครบ จบในแอปเดียว</span></h2>
+    <p class="section-sub">ทุกอย่างที่งานถอดเสียงต้องการ</p>
+    <div class="feat-grid">
+      <div class="feat">
+        <span class="emoji">🎙️</span>
+        <h3>รองรับไฟล์ยอดนิยมทั้งหมด</h3>
+        <p>mp3, wav, m4a, flac, aiff รวมถึงวิดีโอ mp4, mov — แอปแยกเสียงจากวิดีโอให้เอง</p>
+      </div>
+      <div class="feat">
+        <span class="emoji">🔗</span>
+        <h3>วางลิงก์ YouTube ได้เลย</h3>
+        <p>ไม่ต้องโหลดวิดีโอเอง แอปดึงเฉพาะเสียงมาให้ พร้อมชื่อวิดีโอจริง ประหยัดทั้งเน็ตและเวลา</p>
+      </div>
+      <div class="feat">
+        <span class="emoji">🌏</span>
+        <h3>ถอดตามภาษาต้นทางอัตโนมัติ</h3>
+        <p>เสียงภาษาไหนได้ข้อความภาษานั้น ตรวจจับเองไม่ต้องตั้งค่า รองรับไทยปนอังกฤษได้ดีเยี่ยม</p>
+      </div>
+      <div class="feat">
+        <span class="emoji">🔤</span>
+        <h3>แปลในตัว 38 ภาษา</h3>
+        <p>แปลผลลัพธ์เป็นไทย อังกฤษ ญี่ปุ่น จีน ฯลฯ ดูสองภาษาคู่กัน แล้วบันทึกเป็นซับคู่ได้ทันที</p>
+      </div>
+      <div class="feat">
+        <span class="emoji">🔒</span>
+        <h3>เป็นส่วนตัว 100%</h3>
+        <p>เสียงและข้อความไม่ออกจากเครื่องคุณเลย เหมาะกับประชุมภายใน ข้อมูลลูกค้า และเนื้อหาลับ</p>
+      </div>
+      <div class="feat">
+        <span class="emoji">⚡</span>
+        <h3>เบาเครื่อง เร็วจริง</h3>
+        <p>ใช้ Neural Engine ของชิป Apple Silicon โดยตรง กินแรมน้อย พัดลมไม่ดัง แบตไม่ไหล</p>
+      </div>
+      <div class="feat">
+        <span class="emoji">🤖</span>
+        <h3>ส่งต่อให้ AI วิเคราะห์ทันที <span style="font-size:.7rem;background:linear-gradient(100deg,#2E5BFA,#8C33F0);color:#fff;border-radius:999px;padding:2px 8px;vertical-align:middle;">ใหม่</span></h3>
+        <p>ปุ่มเดียวส่งข้อความเข้า NotebookLM, ChatGPT, Gemini หรือ Claude เพื่อสรุปประชุม ทำรายงาน หรือถามต่อ</p>
+      </div>
+      <div class="feat">
+        <span class="emoji">🧾</span>
+        <h3>ส่งออกได้ทุกแบบ</h3>
+        <p>คัดลอกทั้งหมด บันทึกเป็น .txt หรือ .srt สำหรับทำซับวิดีโอ เลือกส่งออกต้นฉบับ คำแปล หรือสองภาษา</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BENEFITS ============ -->
+<section class="benefits">
+  <div class="wrap">
+    <h2>ได้อะไรจาก <span class="grad-text">Voice2Text</span></h2>
+    <p class="section-sub">เปลี่ยนงานที่เคยใช้เวลาเป็นชั่วโมง ให้เหลือไม่กี่นาที</p>
+    <div class="bene-grid">
+      <div class="bene">
+        <span class="emoji">⏱️</span>
+        <div>
+          <h3>ประหยัดเวลามหาศาล</h3>
+          <p>ไม่ต้องนั่งฟังแล้วพิมพ์ตามอีกต่อไป — ประชุม สัมภาษณ์ เลกเชอร์ พ็อดแคสต์ กลายเป็นข้อความให้ค้นหาและสรุปต่อได้ทันที</p>
+        </div>
+      </div>
+      <div class="bene">
+        <span class="emoji">💸</span>
+        <div>
+          <h3>ไม่มีค่าใช้จ่ายแอบแฝง</h3>
+          <p>บริการถอดเสียงออนไลน์คิดเป็นรายเดือนหรือรายนาที Voice2Text ฟรีตลอดชีพ ใช้กี่ชั่วโมงก็ไม่เสียเพิ่ม</p>
+        </div>
+      </div>
+      <div class="bene">
+        <span class="emoji">🛡️</span>
+        <div>
+          <h3>ข้อมูลลับปลอดภัย</h3>
+          <p>เนื้อหาการประชุมภายในองค์กรไม่ควรอยู่บนเซิร์ฟเวอร์ใคร — ที่นี่ทุกอย่างอยู่ในเครื่องคุณ ปิดเน็ตก็ยังทำงานได้</p>
+        </div>
+      </div>
+      <div class="bene">
+        <span class="emoji">🎬</span>
+        <div>
+          <h3>ทำซับวิดีโอได้ทันที</h3>
+          <p>ไฟล์ .srt พร้อมเวลาแม่นยำ ใช้กับ Premiere, CapCut, YouTube ได้เลย แถมทำซับสองภาษาสำหรับคอนเทนต์ต่างประเทศ</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INSTALL ============ -->
+<section id="install">
+  <div class="wrap">
+    <h2>วิธี<span class="grad-text">ติดตั้ง</span></h2>
+    <p class="section-sub">ใช้เวลาไม่ถึง 2 นาที</p>
+    <div class="install-box">
+      <div class="ins">
+        <div class="ins-num">1</div>
+        <div>
+          <h3>เปิดไฟล์ที่ดาวน์โหลด</h3>
+          <p>กดปุ่มดาวน์โหลดด้านบน แล้วดับเบิลคลิกไฟล์ <kbd>Voice2Text-1.3.4.dmg</kbd> จะมีหน้าต่างเด้งขึ้นมา</p>
+        </div>
+      </div>
+      <div class="ins">
+        <div class="ins-num">2</div>
+        <div>
+          <h3>ลากแอปลงโฟลเดอร์ Applications</h3>
+          <p>ในหน้าต่างนั้น ลากไอคอน <kbd>Voice2Text</kbd> ไปวางบนโฟลเดอร์ <kbd>Applications</kbd> ที่อยู่ข้าง ๆ เสร็จแล้วดันแผ่น dmg ออกได้เลย (Eject)</p>
+        </div>
+      </div>
+      <div class="ins">
+        <div class="ins-num">3</div>
+        <div>
+          <h3>เปิดครั้งแรก — ผ่านคำเตือนความปลอดภัยของ macOS</h3>
+          <p>ดับเบิลคลิกเปิดแอป จะเจอคำเตือน "Voice2Text" Not Opened — <strong>เป็นเรื่องปกติ</strong> ทำตาม 3 ขั้นตอนในกล่องสีเหลืองด้านล่างนี้ (ทำครั้งเดียวจบ)</p>
+        </div>
+      </div>
+      <div class="ins">
+        <div class="ins-num">4</div>
+        <div>
+          <h3>รอโมเดลพร้อม แล้วเริ่มได้เลย</h3>
+          <p>ครั้งแรกแอปจะดาวน์โหลดโมเดล AI (~630MB) อัตโนมัติ ใช้เวลาไม่กี่นาที หลังจากนั้นทำงานออฟไลน์ได้ตลอด</p>
+        </div>
+      </div>
+      <div class="gatekeeper" id="gatekeeper">
+        <h3>⚠️ เจอ "Apple could not verify…" — ผ่านได้ใน 3 ขั้นตอน</h3>
+        <p class="gk-why">
+          macOS เตือนแบบนี้กับทุกแอปที่แจกฟรีนอก App Store โดยผู้พัฒนาไม่ได้จ่ายค่าจดทะเบียน Apple Developer (ปีละ $99)
+          — ไม่ได้แปลว่าแอปอันตราย Voice2Text ทำงานออฟไลน์ทั้งหมดและไม่ส่งข้อมูลใด ๆ ออกจากเครื่องคุณ
+        </p>
+        <ol>
+          <li>ในกล่องคำเตือน กด <strong>Done</strong> <span class="gk-no">(อย่ากด Move to Trash!)</span></li>
+          <li>เปิด <strong>System Settings → Privacy &amp; Security</strong> เลื่อนลงมาล่างสุด
+            จะเห็นข้อความว่า "Voice2Text" was blocked… → กดปุ่ม <strong>Open Anyway</strong></li>
+          <li>กดยืนยันอีกครั้ง (ระบบอาจขอรหัสผ่านเครื่อง) — เสร็จแล้ว! หลังจากนี้เปิดใช้ได้ปกติตลอดไป</li>
+        </ol>
+        <p class="gk-alt">
+          🖥️ ทางลัดสำหรับสาย Terminal: รันคำสั่ง <code>xattr -cr /Applications/Voice2Text.app</code> แล้วเปิดแอปได้ทันที
+        </p>
+      </div>
+      <div class="tip">
+        💡 <strong>เคล็ดลับ:</strong> อยากได้ความแม่นสูงสุดสำหรับงานสำคัญ เข้าไปที่ ตั้งค่า (⚙️) แล้วเปลี่ยนโมเดลเป็น "แม่นที่สุด" ได้ หรือเลือก "เร็ว" ถ้าเน้นปริมาณงานเยอะ ๆ
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="faq">
+  <div class="wrap">
+    <h2>คำถามที่พบ<span class="grad-text">บ่อย</span></h2>
+    <p class="section-sub"></p>
+    <div class="faq-list">
+      <details>
+        <summary>ทำไม macOS เตือนว่า "Apple could not verify…" ตอนเปิดครั้งแรก?</summary>
+        <p>เพราะแอปแจกฟรีนอก App Store และผู้พัฒนาไม่ได้จ่ายค่าจดทะเบียน Apple Developer (ปีละ $99) macOS จึงเตือนกับแอปลักษณะนี้ทุกตัวเป็นมาตรฐาน ไม่ได้ตรวจพบอะไรอันตรายในตัวแอป — ดูวิธีเปิดใน <a href="#gatekeeper">3 ขั้นตอนที่นี่</a> ทำครั้งเดียว หลังจากนั้นเปิดได้ปกติตลอด</p>
+      </details>
+      <details>
+        <summary>ฟรีจริงไหม มีเงื่อนไขอะไรหรือเปล่า?</summary>
+        <p>ฟรี 100% ไม่มีโฆษณา ไม่มีสมัครสมาชิก ไม่เก็บข้อมูลผู้ใช้ เพราะทุกอย่างทำงานในเครื่องคุณเอง เราไม่มีเซิร์ฟเวอร์ที่ต้องจ่ายค่าดูแล</p>
+      </details>
+      <details>
+        <summary>ต้องต่ออินเทอร์เน็ตไหม?</summary>
+        <p>ต่อเน็ตเฉพาะ 2 กรณี: ครั้งแรกที่เปิดแอป (ดาวน์โหลดโมเดล ~630MB ครั้งเดียว) และตอนถอดเสียงจากลิงก์ YouTube หลังจากนั้นไฟล์ในเครื่องถอดแบบออฟไลน์ได้เลย</p>
+      </details>
+      <details>
+        <summary>รองรับภาษาอะไรบ้าง?</summary>
+        <p>ถอดเสียงได้เกือบ 100 ภาษา (เทคโนโลยี Whisper ของ OpenAI) ตรวจจับภาษาอัตโนมัติ รวมถึงเสียงไทยปนอังกฤษ ส่วนการแปลรองรับ 38 ภาษาผ่านระบบแปลของ Apple</p>
+      </details>
+      <details>
+        <summary>ความแม่นยำเป็นอย่างไร?</summary>
+        <p>ใช้โมเดล Whisper large-v3 turbo ระดับเดียวกับบริการถอดเสียงคลาวด์ชั้นนำ ความแม่นขึ้นกับคุณภาพเสียง — เสียงพูดชัดในห้องเงียบแม่นเกิน 95% ส่วนเสียงประชุมที่พูดซ้อนกันอาจมีพลาดบ้างเป็นปกติ</p>
+      </details>
+      <details>
+        <summary>ใช้กับ Mac รุ่นไหนได้บ้าง?</summary>
+        <p>Mac ชิป Apple Silicon (M1 ขึ้นไป) ที่ใช้ macOS 15 Sequoia ขึ้นไป — แอปใช้ Neural Engine ของชิปโดยตรงจึงไม่รองรับ Mac รุ่น Intel</p>
+      </details>
+      <details>
+        <summary>ไฟล์เสียงของฉันถูกส่งไปที่ไหนหรือเปล่า?</summary>
+        <p>ไม่เลย ไฟล์เสียง ข้อความที่ถอดได้ และคำแปล อยู่ในเครื่องคุณทั้งหมด แอปไม่มีระบบเก็บสถิติหรือส่งข้อมูลใด ๆ ออกไป ถอดเสร็จจะลบไฟล์ชั่วคราวให้อัตโนมัติ</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BOTTOM CTA ============ -->
+<section class="bottom-cta">
+  <div class="wrap">
+    <h2>พร้อมเปลี่ยนเสียงเป็นข้อความ<span class="grad-text">แล้วหรือยัง?</span></h2>
+    <p class="section-sub">ดาวน์โหลดฟรี ติดตั้งใน 2 นาที</p>
+    <a class="btn btn-primary" href="Voice2Text-1.3.4.dmg" download>⬇️&nbsp; ดาวน์โหลด Voice2Text สำหรับ macOS (.dmg)</a>
+    <p class="dl-note" style="margin-top:14px;">v1.3.4 • 2.8MB • macOS 15+ • Apple Silicon</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Voice2Text — สร้างด้วย <a href="https://github.com/argmaxinc/WhisperKit" target="_blank" rel="noopener">WhisperKit</a> และ Apple Translation • ประมวลผลในเครื่อง 100%</p>
+  </div>
+</footer>
+
+</body>
+</html>

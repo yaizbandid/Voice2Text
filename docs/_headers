@@ -1,0 +1,4 @@
+# Netlify headers — บังคับให้ไฟล์ .dmg ถูกดาวน์โหลดเสมอ (ไม่เปิดในเบราว์เซอร์)
+/Voice2Text-1.3.4.dmg
+  Content-Type: application/octet-stream
+  Content-Disposition: attachment; filename="Voice2Text-1.3.4.dmg"
