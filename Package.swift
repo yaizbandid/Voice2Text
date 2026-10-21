@@ -21,13 +21,23 @@ let package = Package(
                 .product(name: "WhisperKit", package: "WhisperKit"),
             ]
         ),
-        .executableTarget(
-            name: "Voice2Text",
+        // ส่วนวิเคราะห์คลิป (แท็บ "วิเคราะห์คลิป") — แยกจากส่วนถอดเสียงเดิม ดู SPEC.md
+        .target(
+            name: "ClipAnalysisCore",
             dependencies: ["Voice2TextCore"]
         ),
         .executableTarget(
+            name: "Voice2Text",
+            dependencies: ["Voice2TextCore", "ClipAnalysisCore"]
+        ),
+        .executableTarget(
             name: "V2TCLI",
-            dependencies: ["Voice2TextCore"]
+            dependencies: ["Voice2TextCore", "ClipAnalysisCore"]
+        ),
+        .testTarget(
+            name: "ClipAnalysisCoreTests",
+            dependencies: ["ClipAnalysisCore"],
+            resources: [.copy("Fixtures")]
         ),
     ]
 )

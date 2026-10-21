@@ -1,9 +1,11 @@
 import Foundation
 import Voice2TextCore
+import ClipAnalysisCore
 
 // เครื่องมือทดสอบผ่าน Terminal:
 //   v2t <ไฟล์เสียงหรือวิดีโอ> [--model openai_whisper-tiny] [--lang th|en|auto]
 //   v2t --list-models
+//   v2t meta <ลิงก์คลิปหรือช่อง> [--limit 10] [--cookies chrome]
 
 let rawArgs = Array(CommandLine.arguments.dropFirst())
 
@@ -15,6 +17,11 @@ func option(_ name: String, default defaultValue: String) -> String {
 }
 
 do {
+    if rawArgs.first == "meta" {
+        try await runMeta()
+        exit(0)
+    }
+
     if rawArgs.contains("--list-models") {
         print("โมเดลที่มีบน argmaxinc/whisperkit-coreml:")
         for model in try await TranscriptionService.availableModels() {
@@ -101,4 +108,43 @@ do {
 } catch {
     print("❌ \(error.localizedDescription)")
     exit(1)
+}
+
+/// v2t meta — ดึงยอดวิว/ไลก์/คอมเมนต์ (ไม่ดาวน์โหลดวิดีโอ ไม่บันทึกลงคลัง)
+func runMeta() async throws {
+    guard let link = rawArgs.dropFirst().first(where: { !$0.hasPrefix("--") }) else {
+        print("วิธีใช้: v2t meta <ลิงก์คลิปหรือช่อง> [--limit 10] [--cookies chrome]")
+        exit(1)
+    }
+    let cookies = option("--cookies", default: "")
+    let options = MetadataFetcher.Options(cookiesFromBrowser: cookies.isEmpty ? nil : cookies)
+    let limit = Int(option("--limit", default: "10")) ?? 10
+
+    let urls: [URL]
+    switch PlatformDetector.detect(link) {
+    case .clip(_, _, let url):
+        urls = [url]
+    case .collection(let url):
+        urls = try await MetadataFetcher.shared.expandCollection(url, limit: limit, options: options)
+        print("พบ \(urls.count) คลิป")
+    case .unsupported:
+        print("❌ ยังรองรับเฉพาะ YouTube, Shorts และ Reels")
+        exit(1)
+    }
+
+    for url in urls {
+        do {
+            let clip = try await MetadataFetcher.shared.fetchClip(url, options: options)
+            let m = clip.metrics
+            func show(_ value: Int?) -> String { value.map(String.init) ?? "-" }
+            let er = m.engagementRate.map { String(format: "%.2f%%", $0 * 100) } ?? "-"
+            print(String(repeating: "-", count: 60))
+            print("[\(clip.platform.displayName)] \(clip.title)")
+            print("  ช่อง: \(clip.channel ?? "-")  ผู้ติดตาม: \(show(m.followers))")
+            print("  วิว: \(show(m.views))  ไลก์: \(show(m.likes))  คอมเมนต์: \(show(m.comments))  ER: \(er)")
+            print("  ยาว: \(clip.durationSeconds.map { "\(Int($0)) วิ" } ?? "-")  id: \(clip.id)")
+        } catch {
+            print("❌ \(url.absoluteString): \(error.localizedDescription)")
+        }
+    }
 }
