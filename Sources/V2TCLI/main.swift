@@ -6,6 +6,7 @@ import ClipAnalysisCore
 //   v2t <ไฟล์เสียงหรือวิดีโอ> [--model openai_whisper-tiny] [--lang th|en|auto]
 //   v2t --list-models
 //   v2t meta <ลิงก์คลิปหรือช่อง> [--limit 10] [--cookies chrome]
+//   v2t speech <ลิงก์คลิป> [--model ...] [--lang th|en|auto]
 
 let rawArgs = Array(CommandLine.arguments.dropFirst())
 
@@ -19,6 +20,10 @@ func option(_ name: String, default defaultValue: String) -> String {
 do {
     if rawArgs.first == "meta" {
         try await runMeta()
+        exit(0)
+    }
+    if rawArgs.first == "speech" {
+        try await runSpeech()
         exit(0)
     }
 
@@ -147,4 +152,43 @@ func runMeta() async throws {
             print("❌ \(url.absoluteString): \(error.localizedDescription)")
         }
     }
+}
+
+/// v2t speech — ดึงข้อมูล + ถอดเสียงพร้อมเวลาระดับคำ + วัดการพูด (ไม่บันทึกลงคลัง)
+func runSpeech() async throws {
+    guard let link = rawArgs.dropFirst().first(where: { !$0.hasPrefix("--") }),
+          case .clip(_, _, let url) = PlatformDetector.detect(link) else {
+        print("วิธีใช้: v2t speech <ลิงก์คลิป YouTube/Shorts/Reels> [--model ...] [--lang th|en|auto]")
+        exit(1)
+    }
+    let model = option("--model", default: "openai_whisper-large-v3-v20240930_626MB")
+    let langArg = option("--lang", default: "auto")
+
+    let clip = try await MetadataFetcher.shared.fetchClip(url)
+    print("[\(clip.platform.displayName)] \(clip.title) (\(Int(clip.durationSeconds ?? 0)) วิ)")
+    print("โหลดโมเดล \(model)…")
+    try await TranscriptionService.shared.loadModel(model, downloadProgress: { _ in }, onLoadStart: {})
+
+    let started = Date()
+    let result = try await ClipTranscriber.transcribe(
+        clip, language: langArg == "auto" ? nil : langArg, onStage: { _ in })
+    print(String(format: "ถอดเสียงเสร็จใน %.1f วินาที", -started.timeIntervalSinceNow))
+
+    let segments = result.transcript?.segments ?? []
+    let wordCount = segments.reduce(0) { $0 + ($1.words?.count ?? 0) }
+    print("ภาษา: \(result.transcript?.language ?? "-")  ประโยค: \(segments.count)  ก้อนคำจาก Whisper: \(wordCount)")
+    for segment in segments.prefix(6) {
+        print("  [\(Exporter.clock(segment.start))] \(segment.text)")
+    }
+    guard let s = result.speech else {
+        print("ไม่พบเสียงพูด")
+        return
+    }
+    print(String(repeating: "-", count: 60))
+    print(String(format: "ความเร็ว: %.0f คำ/นาที (%@)  ช่วง 5 วิแรก: %@", s.wordsPerMinute, s.paceLabel.displayName,
+                 s.openingWPM.map { String(format: "%.0f", $0) } ?? "-"))
+    print(String(format: "คำ: %d  เวลาพูด: %.1f วิ  สัดส่วนเวลาพูด: %@", s.wordCount, s.speakingSeconds,
+                 s.speechRatio.map { String(format: "%.0f%%", $0 * 100) } ?? "-"))
+    print(String(format: "เริ่มพูดที่ %.1f วิ  ช่วงเงียบ: %d ครั้ง (นานสุด %.1f วิ)  ใช้เวลาระดับคำ: %@",
+                 s.timeToFirstWord, s.pauseCount, s.longestPause, s.usedWordTimings ? "ใช่" : "ไม่"))
 }

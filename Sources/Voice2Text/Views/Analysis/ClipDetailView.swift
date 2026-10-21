@@ -22,6 +22,7 @@ struct ClipDetailView: View {
                     }
                     metricsGrid(clip)
                     actions(clip)
+                    SpeechSection(clip: clip)
                     if let description = clip.description, !description.isEmpty {
                         GroupBox("คำอธิบายคลิป") {
                             Text(description)
@@ -102,5 +103,119 @@ struct ClipDetailView: View {
             .help("ลบออกจากคลัง")
         }
         .controlSize(.small)
+    }
+}
+
+/// ผลวัดการพูด + ข้อความถอดเสียง (เฟส 2)
+struct SpeechSection: View {
+    @EnvironmentObject var analysis: AnalysisState
+    let clip: ClipRecord
+    @State private var showTranscript = false
+
+    var body: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                header
+                if let activity = analysis.clipActivity[clip.id] {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text(activity).font(.callout).lineLimit(2)
+                    }
+                } else if let speech = clip.speech {
+                    metrics(speech)
+                } else if clip.transcript != nil {
+                    Text("ไม่พบเสียงพูดในคลิปนี้ (อาจเป็นเพลงล้วน)").font(.callout).foregroundStyle(.secondary)
+                } else {
+                    if let error = clip.transcriptError {
+                        Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                    }
+                    Button {
+                        analysis.transcribe([clip.id])
+                    } label: { Label("ถอดเสียง & วัดการพูด", systemImage: "waveform.badge.magnifyingglass") }
+                    .controlSize(.small)
+                }
+                if let transcript = clip.transcript, !transcript.segments.isEmpty {
+                    DisclosureGroup("ข้อความถอดเสียง (\(transcript.segments.count) ประโยค)", isExpanded: $showTranscript) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(transcript.segments) { segment in
+                                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                    Text(ClipFormat.duration(segment.start))
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                    Text(segment.text).font(.callout)
+                                }
+                            }
+                        }
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
+                    }
+                    .font(.callout)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } label: {
+            Text("การพูด")
+        }
+    }
+
+    @ViewBuilder
+    private var header: some View {
+        if let transcript = clip.transcript, analysis.clipActivity[clip.id] == nil {
+            HStack(spacing: 6) {
+                if let language = transcript.language {
+                    Text("ภาษา: \(languageDisplayName(language))").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("ถอดใหม่") { analysis.transcribe([clip.id]) }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+            }
+        }
+    }
+
+    private func metrics(_ speech: SpeechMetrics) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+            GridRow {
+                cell("ความเร็ว", "\(Int(speech.wordsPerMinute.rounded())) คำ/นาที",
+                     badge: analysis.paceLabel(for: clip)?.displayName)
+                cell("5 วินาทีแรก", speech.openingWPM.map { "\(Int($0.rounded())) คำ/นาที" } ?? "–",
+                     help: "ความเร็วช่วงเปิดคลิป (ประมาณช่วง Hook)")
+            }
+            GridRow {
+                cell("เริ่มพูดที่", String(format: "%.1f วิ", speech.timeToFirstWord))
+                cell("ช่วงเงียบ > \(String(format: "%.1f", SpeechMetrics.pauseThreshold)) วิ",
+                     "\(speech.pauseCount) ครั้ง",
+                     help: speech.pauseCount > 0 ? String(format: "นานสุด %.1f วินาที", speech.longestPause) : nil)
+            }
+            GridRow {
+                cell("จำนวนคำ", "\(speech.wordCount)")
+                cell("สัดส่วนเวลาพูด", speech.speechRatio.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? "–",
+                     help: "เวลาที่มีเสียงพูด ÷ ความยาวคลิป")
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if !speech.usedWordTimings {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(.secondary)
+                    .help("ประมาณจากเวลาของประโยค (ไม่มีเวลาระดับคำ) — ค่าอาจคลาดเคลื่อน")
+            }
+        }
+    }
+
+    private func cell(_ label: String, _ value: String, badge: String? = nil, help: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Text(value).font(.callout.weight(.semibold)).monospacedDigit()
+                if let badge {
+                    Text(badge)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+                }
+            }
+        }
+        .help(help ?? "")
     }
 }

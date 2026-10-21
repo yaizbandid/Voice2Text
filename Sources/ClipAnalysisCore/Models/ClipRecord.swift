@@ -77,6 +77,12 @@ public struct ClipRecord: Codable, Identifiable, Hashable {
     public var metrics: ClipMetrics
     public var status: ClipStatus
     public var errorMessage: String?
+    /// ข้อความถอดเสียง (เฟส 2) — nil = ยังไม่ได้ถอด
+    public var transcript: ClipTranscript?
+    /// ผลวัดการพูด — nil = ยังไม่ได้ถอด หรือคลิปไม่มีเสียงพูด
+    public var speech: SpeechMetrics?
+    /// ข้อผิดพลาดล่าสุดของการถอดเสียง
+    public var transcriptError: String?
     public var createdAt: Date
     public var fetchedAt: Date
 
@@ -116,6 +122,24 @@ public struct ClipRecord: Codable, Identifiable, Hashable {
         self.errorMessage = errorMessage
         self.createdAt = createdAt
         self.fetchedAt = fetchedAt
+    }
+
+    /// อัปเดตเฉพาะข้อมูลจากแพลตฟอร์ม (ดึงยอดใหม่) — เก็บ transcript / ผลวิเคราะห์ / createdAt เดิมไว้
+    public mutating func updateMetadata(from fresh: ClipRecord) {
+        platform = fresh.platform
+        url = fresh.url
+        title = fresh.title
+        channel = fresh.channel
+        channelID = fresh.channelID
+        description = fresh.description
+        tags = fresh.tags
+        durationSeconds = fresh.durationSeconds
+        uploadDate = fresh.uploadDate
+        thumbnailURL = fresh.thumbnailURL
+        metrics = fresh.metrics
+        status = fresh.status
+        errorMessage = fresh.errorMessage
+        fetchedAt = fresh.fetchedAt
     }
 
     public static func makeID(platform: Platform, videoID: String) -> String {

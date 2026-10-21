@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import ClipAnalysisCore
+import Voice2TextCore
 
 private func fixture(_ name: String) throws -> Data {
     let url = try #require(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
@@ -152,5 +153,93 @@ struct LibraryStoreTests {
         try store.upsert(clip)
         try store.delete(id: clip.id)
         #expect(store.loadAll().isEmpty)
+    }
+}
+
+@Suite("SpeechMetrics")
+struct SpeechMetricsTests {
+    /// คำละ 0.25 วิ ห่างกัน 0.05 วิ — ระหว่าง 3.95–6.0 วิ เงียบ 2.05 วินาที
+    private func englishSegments() -> [TranscriptSegment] {
+        let first = (0..<10).map { i in
+            TranscriptWord(text: " word\(i)", start: 1.0 + Double(i) * 0.3, end: 1.0 + Double(i) * 0.3 + 0.25)
+        }
+        let second = (0..<10).map { i in
+            TranscriptWord(text: " more\(i)", start: 6.0 + Double(i) * 0.3, end: 6.0 + Double(i) * 0.3 + 0.25)
+        }
+        return [
+            TranscriptSegment(start: 1.0, end: 4.0, text: first.map(\.text).joined(), words: first),
+            TranscriptSegment(start: 6.0, end: 9.0, text: second.map(\.text).joined(), words: second),
+        ]
+    }
+
+    @Test func basicPaceAndPauses() throws {
+        let m = try #require(SpeechMetrics.compute(segments: englishSegments(), language: "en", clipDuration: 10))
+        #expect(m.wordCount == 20)
+        #expect(m.timeToFirstWord == 1.0)
+        #expect(m.pauseCount == 1)
+        #expect(abs(m.longestPause - 2.05) < 0.01)
+        // เวลาพูด = 2 ช่วง × 2.95 วิ (รอยต่อ 0.05 วิระหว่างคำนับเป็นเวลาพูด)
+        #expect(abs(m.speakingSeconds - 5.9) < 0.01)
+        #expect(abs(m.wordsPerMinute - 20 / (5.9 / 60)) < 0.5)
+        #expect(m.usedWordTimings)
+        #expect(m.paceLabel == .fast)  // ~203 คำ/นาที, เกณฑ์อังกฤษ เร็ว < 210
+    }
+
+    @Test func thaiPiecesAreNotOvercounted() throws {
+        // Whisper หั่นคำไทยเป็นก้อนเล็ก ๆ ไม่มีเว้นวรรค — ต้องนับเท่ากับข้อความเต็ม
+        let text = "วิธีทำซุปกิมจิแบบง่าย"
+        let pieces = ["วิ", "ธี", "ทำ", "ซุ", "ป", "กิม", "จิ", "แบบ", "ง่าย"]
+        let words = pieces.enumerated().map { i, p in
+            TranscriptWord(text: p, start: Double(i) * 0.2, end: Double(i) * 0.2 + 0.18)
+        }
+        let segments = [TranscriptSegment(start: 0, end: 1.8, text: text, words: words)]
+        let m = try #require(SpeechMetrics.compute(segments: segments, language: "th", clipDuration: 2))
+        let expected = SpeechMetrics.countWords(text, language: "th")
+        #expect(m.wordCount == expected)
+        #expect(expected < pieces.count)
+        let opening = try #require(m.openingWPM)
+        #expect(abs(opening - m.wordsPerMinute) < 1)
+    }
+
+    @Test func fallsBackToSegmentTimes() throws {
+        let segments = [TranscriptSegment(start: 0, end: 6, text: "one two three four five six seven eight nine ten")]
+        let m = try #require(SpeechMetrics.compute(segments: segments, language: "en", clipDuration: 6))
+        #expect(!m.usedWordTimings)
+        #expect(m.wordsPerMinute == 100)
+        #expect(m.paceLabel == .slow)
+    }
+
+    @Test func noSpeechReturnsNil() {
+        #expect(SpeechMetrics.compute(segments: [], language: nil, clipDuration: 10) == nil)
+        #expect(SpeechMetrics.compute(segments: [TranscriptSegment(start: 0, end: 2, text: "♪ ♪")],
+                                      language: nil, clipDuration: 10) == nil)
+    }
+
+    @Test func thresholds() {
+        let t = PaceThresholds(slowBelow: 100, normalBelow: 150, fastBelow: 200)
+        #expect(t.label(for: 99) == .slow)
+        #expect(t.label(for: 100) == .normal)
+        #expect(t.label(for: 199) == .fast)
+        #expect(t.label(for: 200) == .veryFast)
+    }
+
+    @Test func sectionWPM() throws {
+        let wpm = try #require(SpeechMetrics.wordsPerMinute(segments: englishSegments(), language: "en", from: 0, to: 5))
+        #expect(abs(wpm - 10 / (2.95 / 60)) < 0.5)
+    }
+}
+
+@Suite("ClipRecord")
+struct ClipRecordTests {
+    @Test func refetchKeepsTranscript() {
+        var existing = ClipRecord(platform: .shorts, videoID: "a", url: URL(string: "https://www.youtube.com/shorts/a")!,
+                                  title: "old", metrics: ClipMetrics(views: 1), createdAt: Date(timeIntervalSince1970: 0))
+        existing.transcript = ClipTranscript(language: "th", segments: [], model: "m")
+        let fresh = ClipRecord(platform: .shorts, videoID: "a", url: existing.url, title: "new", metrics: ClipMetrics(views: 50))
+        existing.updateMetadata(from: fresh)
+        #expect(existing.title == "new")
+        #expect(existing.metrics.views == 50)
+        #expect(existing.transcript != nil)
+        #expect(existing.createdAt == Date(timeIntervalSince1970: 0))
     }
 }

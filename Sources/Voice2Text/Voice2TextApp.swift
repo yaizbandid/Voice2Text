@@ -18,6 +18,7 @@ struct Voice2TextApp: App {
                 .onAppear {
                     NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
+                    analysis.appState = state
                     state.loadModelIfNeeded()
                 }
         }

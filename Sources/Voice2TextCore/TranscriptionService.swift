@@ -8,6 +8,9 @@ public final class TranscriptionService {
     public private(set) var whisperKit: WhisperKit?
     public private(set) var loadedModel: String?
 
+    /// แท็บถอดเสียงกับแท็บวิเคราะห์คลิปใช้โมเดลตัวเดียวกัน — ให้ถอดได้ทีละงาน
+    private let gate = AsyncGate()
+
     private init() {}
 
     /// โฟลเดอร์เก็บโมเดล: ~/Library/Application Support/Voice2Text
@@ -65,6 +68,27 @@ public final class TranscriptionService {
     public func transcribe(
         audioURL: URL,
         language: String?,
+        wordTimestamps: Bool = false,
+        onLiveText: @escaping (String) -> Void,
+        onProgress: @escaping (Double) -> Void
+    ) async throws -> TranscriptionOutput {
+        await gate.enter()
+        do {
+            let output = try await transcribeUnlocked(
+                audioURL: audioURL, language: language, wordTimestamps: wordTimestamps,
+                onLiveText: onLiveText, onProgress: onProgress)
+            await gate.leave()
+            return output
+        } catch {
+            await gate.leave()
+            throw error
+        }
+    }
+
+    private func transcribeUnlocked(
+        audioURL: URL,
+        language: String?,
+        wordTimestamps: Bool,
         onLiveText: @escaping (String) -> Void,
         onProgress: @escaping (Double) -> Void
     ) async throws -> TranscriptionOutput {
@@ -76,6 +100,7 @@ public final class TranscriptionService {
         options.task = .transcribe
         options.language = language
         options.chunkingStrategy = .vad
+        options.wordTimestamps = wordTimestamps
         if language == nil {
             options.detectLanguage = true
         }
@@ -110,7 +135,14 @@ public final class TranscriptionService {
                 TranscriptSegment(
                     start: Double($0.start),
                     end: Double($0.end),
-                    text: Self.cleanText($0.text)
+                    text: Self.cleanText($0.text),
+                    words: $0.words.map { timings in
+                        timings
+                            // เก็บเว้นวรรคนำหน้าไว้ — Whisper ใส่เว้นวรรคเฉพาะจุดที่เป็นการขึ้นคำใหม่
+                            // ภาษาไทยจึงต่อก้อนกลับเป็นข้อความเดิมได้ด้วยการต่อกันตรง ๆ
+                            .map { TranscriptWord(text: Self.stripSpecialTokens($0.word), start: Double($0.start), end: Double($0.end)) }
+                            .filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                    }
                 )
             }
             .filter { !$0.text.isEmpty }
@@ -119,7 +151,32 @@ public final class TranscriptionService {
 
     /// ตัด token พิเศษของ Whisper เช่น <|startoftranscript|> ออกจากข้อความ
     static func cleanText(_ text: String) -> String {
+        stripSpecialTokens(text).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func stripSpecialTokens(_ text: String) -> String {
         text.replacingOccurrences(of: #"<\|[^|]*\|>"#, with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+/// คิวแบบ async ให้เข้าใช้ได้ทีละงาน (FIFO)
+actor AsyncGate {
+    private var busy = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func enter() async {
+        guard busy else {
+            busy = true
+            return
+        }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func leave() {
+        if waiters.isEmpty {
+            busy = false
+        } else {
+            waiters.removeFirst().resume()
+        }
     }
 }

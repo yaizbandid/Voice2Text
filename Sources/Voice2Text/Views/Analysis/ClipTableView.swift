@@ -33,11 +33,31 @@ struct ClipTableView: View {
                     .width(min: 50, ideal: 64)
                 TableColumn("ER", value: \.engagement) { Text(ClipFormat.percent($0.clip.metrics.engagementRate)).monospacedDigit() }
                     .width(min: 50, ideal: 60)
+                TableColumn("การพูด", value: \.wpm) { row in
+                    if let activity = analysis.clipActivity[row.id] {
+                        HStack(spacing: 4) {
+                            ProgressView().controlSize(.mini)
+                            Text(activity).font(.caption).lineLimit(1)
+                        }
+                        .help(activity)
+                    } else if let speech = row.clip.speech {
+                        Text("\(Int(speech.wordsPerMinute.rounded())) · \(analysis.paceLabel(for: row.clip)?.displayName ?? "")")
+                            .monospacedDigit()
+                            .help("คำต่อนาที · ระดับความเร็ว")
+                    } else if row.clip.transcriptError != nil {
+                        Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+                            .help(row.clip.transcriptError ?? "")
+                    } else {
+                        Text("–").foregroundStyle(.secondary)
+                    }
+                }
+                .width(min: 70, ideal: 90)
                 TableColumn("โพสต์", value: \.uploaded) { Text(ClipFormat.date($0.clip.uploadDate)) }
                     .width(min: 70, ideal: 90)
             }
             .contextMenu(forSelectionType: String.self) { ids in
                 Button("ดึงยอดใหม่") { analysis.refresh(ids) }
+                Button("ถอดเสียง & วัดการพูด") { analysis.transcribe(ids) }
                 Button("เปิดคลิปในเบราว์เซอร์") {
                     for clip in analysis.clips where ids.contains(clip.id) { NSWorkspace.shared.open(clip.url) }
                 }
@@ -65,6 +85,7 @@ struct ClipRow: Identifiable {
     var likes: Int { clip.metrics.likes ?? -1 }
     var comments: Int { clip.metrics.comments ?? -1 }
     var engagement: Double { clip.metrics.engagementRate ?? -1 }
+    var wpm: Double { clip.speech?.wordsPerMinute ?? -1 }
     var uploaded: Date { clip.uploadDate ?? .distantPast }
     var createdAt: Date { clip.createdAt }
 }
