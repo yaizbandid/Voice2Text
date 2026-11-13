@@ -1,4 +1,5 @@
 import SwiftUI
+import Voice2TextCore
 
 struct SettingsView: View {
     @EnvironmentObject var state: AppState
@@ -17,6 +18,7 @@ struct SettingsView: View {
                 Text("เร็ว — ความแม่นพอใช้ (~500MB)").tag("openai_whisper-small")
                 Text("สมดุล — แนะนำ (~630MB)").tag(AppState.defaultModel)
                 Text("แม่นที่สุด (~1.6GB)").tag("openai_whisper-large-v3-v20240930")
+                Text("OpenThai 2.0 ASR — ไทย + อังกฤษ (~2.6GB ในเครื่อง)").tag(TranscriptionService.openThaiModelVariant)
             }
             .pickerStyle(.radioGroup)
 

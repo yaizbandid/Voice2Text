@@ -1,9 +1,10 @@
 import Foundation
 import WhisperKit
 
-/// จัดการโมเดล Whisper (ดาวน์โหลด/โหลด) และการถอดเสียง
+/// จัดการโมเดล Whisper / OpenThai (ดาวน์โหลด/โหลด) และการถอดเสียง
 public final class TranscriptionService {
     public static let shared = TranscriptionService()
+    public static let openThaiModelVariant = "openthai-2.0-asr-streaming"
 
     public private(set) var whisperKit: WhisperKit?
     public private(set) var loadedModel: String?
@@ -28,6 +29,14 @@ public final class TranscriptionService {
         downloadProgress: @escaping (Double) -> Void,
         onLoadStart: @escaping () -> Void
     ) async throws {
+        if variant == Self.openThaiModelVariant {
+            _ = try Self.resolveOpenThaiPaths()
+            whisperKit = nil
+            onLoadStart()
+            loadedModel = variant
+            return
+        }
+
         if loadedModel == variant, whisperKit != nil { return }
         whisperKit = nil
         loadedModel = nil
@@ -68,6 +77,15 @@ public final class TranscriptionService {
         onLiveText: @escaping (String) -> Void,
         onProgress: @escaping (Double) -> Void
     ) async throws -> TranscriptionOutput {
+        if loadedModel == Self.openThaiModelVariant {
+            return try await transcribeWithOpenThai(
+                audioURL: audioURL,
+                language: language,
+                onLiveText: onLiveText,
+                onProgress: onProgress
+            )
+        }
+
         guard let whisperKit else {
             throw V2TError("โมเดลยังไม่พร้อมใช้งาน")
         }
@@ -121,5 +139,113 @@ public final class TranscriptionService {
     static func cleanText(_ text: String) -> String {
         text.replacingOccurrences(of: #"<\|[^|]*\|>"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: - OpenThai 2.0 ASR Streaming
+
+    private struct OpenThaiPaths {
+        let pythonURL: URL
+        let scriptURL: URL
+    }
+
+    private struct OpenThaiResponse: Decodable {
+        struct Segment: Decodable {
+            let start: Double
+            let end: Double
+            let text: String
+        }
+        let language: String?
+        let text: String
+        let segments: [Segment]
+    }
+
+    private static func resolveOpenThaiPaths() throws -> OpenThaiPaths {
+        let fm = FileManager.default
+        let envDir = ProcessInfo.processInfo.environment["OPENTHAI_ASR_DIR"]
+        let baseDir = envDir.map { URL(fileURLWithPath: $0, isDirectory: true) }
+            ?? fm.homeDirectoryForCurrentUser.appendingPathComponent("work/openthai-asr", isDirectory: true)
+
+        let pythonURL = baseDir.appendingPathComponent(".venv/bin/python")
+        let scriptURL = baseDir.appendingPathComponent("transcribe.py")
+        let modelURL = baseDir.appendingPathComponent("openthai2.0-asr-streaming_raw.nemo")
+
+        guard fm.isExecutableFile(atPath: pythonURL.path),
+              fm.fileExists(atPath: scriptURL.path),
+              fm.fileExists(atPath: modelURL.path) else {
+            throw V2TError("ไม่พบชุดโมเดล OpenThai 2.0 ASR ใน \(baseDir.path)")
+        }
+        return OpenThaiPaths(pythonURL: pythonURL, scriptURL: scriptURL)
+    }
+
+    private func transcribeWithOpenThai(
+        audioURL: URL,
+        language: String?,
+        onLiveText: @escaping (String) -> Void,
+        onProgress: @escaping (Double) -> Void
+    ) async throws -> TranscriptionOutput {
+        let paths = try Self.resolveOpenThaiPaths()
+        let promptLang = (language == "th") ? "th-TH" : "th-mix"
+
+        onLiveText("กำลังประมวลผลด้วย OpenThai 2.0 ASR…")
+        let progressTask = Task {
+            var p = 0.08
+            while !Task.isCancelled {
+                onProgress(p)
+                p = min(0.92, p + 0.04)
+                try? await Task.sleep(nanoseconds: 400_000_000)
+            }
+        }
+        defer { progressTask.cancel() }
+
+        let outputData: Data = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                process.executableURL = paths.pythonURL
+                process.arguments = [paths.scriptURL.path, audioURL.path, "--json", "--lang", promptLang]
+                process.currentDirectoryURL = paths.scriptURL.deletingLastPathComponent()
+
+                let stdout = Pipe()
+                let stderr = Pipe()
+                process.standardOutput = stdout
+                process.standardError = stderr
+
+                do {
+                    try process.run()
+                    let outData = stdout.fileHandleForReading.readDataToEndOfFile()
+                    let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+                    process.waitUntilExit()
+
+                    if process.terminationStatus != 0 {
+                        let errMsg = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "exit \(process.terminationStatus)"
+                        continuation.resume(throwing: V2TError("OpenThai 2.0 ASR ผิดพลาด: \(errMsg)"))
+                        return
+                    }
+                    continuation.resume(returning: outData)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+
+        let decoded: OpenThaiResponse
+        do {
+            decoded = try JSONDecoder().decode(OpenThaiResponse.self, from: outputData)
+        } catch {
+            let raw = String(data: outputData, encoding: .utf8) ?? ""
+            throw V2TError("อ่านผลลัพธ์จาก OpenThai 2.0 ASR ไม่สำเร็จ: \(raw.prefix(200))")
+        }
+
+        let segments: [TranscriptSegment]
+        if decoded.segments.isEmpty {
+            let cleaned = decoded.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            segments = cleaned.isEmpty ? [] : [TranscriptSegment(start: 0, end: 0, text: cleaned)]
+        } else {
+            segments = decoded.segments.map {
+                TranscriptSegment(start: $0.start, end: $0.end, text: $0.text)
+            }
+        }
+
+        onProgress(1.0)
+        return TranscriptionOutput(segments: segments, language: decoded.language ?? "th")
     }
 }
